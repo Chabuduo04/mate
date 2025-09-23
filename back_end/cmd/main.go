@@ -41,7 +41,7 @@ func main() {
 	}
 
 	// create API clients (currently mock implementations)
-	llm := services.NewMockLLMService()
+	llm := services.NewQiniuLLMService()
 	asr := services.NewMockASRService()
 	tts := services.NewMockTTSService()
 

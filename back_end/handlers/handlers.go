@@ -46,7 +46,10 @@ func makeChatHandler(svc *services.Services) gin.HandlerFunc {
 		hist, _ := svc.SessionStore.Get(ctx, sessKey)
 
 		// call LLM
-		reply, err := svc.LLM.Chat(ctx, role.Prompt, hist, req.Message)
+		reply, err := svc.LLM.Chat([]services.ChatMessage{
+			{Role: "system", Content: role.Prompt},
+			{Role: "user", Content: req.Message},
+		})
 		if err != nil {
 			svc.Logger.Sugar().Errorf("llm error: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "llm error"})
