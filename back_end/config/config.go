@@ -1,28 +1,46 @@
 package config
 
 import (
-	"fmt"
 	"os"
+	"strconv"
+	"log"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
 	Port        int
 	RedisAddr   string
+	ApiKey		string
+	ApiUrl		string
 	LLMModel    string
 	ASREndpoint string
 	TTSEndpoint string
 }
 
-func LoadConfigFromEnv() *Config {
-	port := 8080
-	if p := os.Getenv("PORT"); p != "" {
-		fmt.Sscanf(p, "%d", &port)
-	}
-	return &Config{
-		Port:        port,
+var AppConfig *Config
+
+func InitConfig() {
+	_ = godotenv.Load()
+	AppConfig = &Config{
+		Port:        getEnvAsInt("PORT", 8080),
 		RedisAddr:   os.Getenv("REDIS_ADDR"),
+		ApiKey:	 os.Getenv("API_KEY"),
+		ApiUrl:	 os.Getenv("API_URL"),
 		LLMModel:    os.Getenv("LLM_MODEL"),
 		ASREndpoint: os.Getenv("ASR_ENDPOINT"),
 		TTSEndpoint: os.Getenv("TTS_ENDPOINT"),
 	}
+}
+
+// getEnvAsInt 读取整数环境变量
+func getEnvAsInt(key string, defaultVal int) int {
+	if valueStr, exists := os.LookupEnv(key); exists {
+		value, err := strconv.Atoi(valueStr)
+		if err != nil {
+			log.Fatalf("环境变量 %s 必须是整数，但得到: %s", key, valueStr)
+		}
+		return value
+	}
+	return defaultVal
 }

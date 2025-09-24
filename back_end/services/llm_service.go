@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
+
+	"github.com/Chabuduo04/mate/back_end/config"
 )
 
 // ChatMessage 对话消息
@@ -50,9 +51,9 @@ type QiniuLLMService struct {
 
 func NewQiniuLLMService() *QiniuLLMService {
 	return &QiniuLLMService{
-		APIKey: os.Getenv("QINIU_API_KEY"),
-		URL:    os.Getenv("QINIU_API_URL"),
-		Model:  os.Getenv("QINIU_API_MODEL"),
+		APIKey: config.AppConfig.ApiKey,
+		URL:    config.AppConfig.ApiUrl,
+		Model:  config.AppConfig.LLMModel,
 	}
 }
 
@@ -61,6 +62,9 @@ func (s *QiniuLLMService) Chat(messages []ChatMessage) (string, error) {
 		Stream:   false,
 		Model:    s.Model,
 		Messages: messages,
+	}
+	if s.URL == "" {
+		return "", fmt.Errorf("LLMURL is null")
 	}
 
 	bodyBytes, _ := json.Marshal(reqBody)

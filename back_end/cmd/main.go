@@ -18,7 +18,8 @@ func main() {
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
 
-	cfg := config.LoadConfigFromEnv()
+	config.InitConfig()
+	cfg := config.AppConfig
 
 	// init session store (Redis or in-memory)
 	var sessionStore services.SessionStore
