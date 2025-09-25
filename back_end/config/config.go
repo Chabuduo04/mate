@@ -16,6 +16,10 @@ type Config struct {
 	LLMModel    string
 	ASREndpoint string
 	TTSEndpoint string
+	KodoHost	string
+	AccessKey 	string
+	SecretKey 	string
+	Bucket	  	string
 }
 
 var AppConfig *Config
@@ -30,6 +34,10 @@ func InitConfig() {
 		LLMModel:    os.Getenv("LLM_MODEL"),
 		ASREndpoint: os.Getenv("ASR_ENDPOINT"),
 		TTSEndpoint: os.Getenv("TTS_ENDPOINT"),
+		KodoHost:	os.Getenv("KODO_HOST"),
+		AccessKey:	os.Getenv("ACCESS_KEY"),
+		SecretKey:	os.Getenv("SECRET_KEY"),
+		Bucket:		os.Getenv("BUCKET"),
 	}
 }
 

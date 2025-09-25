@@ -8,6 +8,7 @@ type Services struct {
 	LLM          LLMService
 	ASR          ASRService
 	TTS          TTSService
+	Storage		 StorageService
 	Logger       *zap.Logger
 
 	// config hints (optional)

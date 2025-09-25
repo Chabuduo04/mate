@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"time"
+	"fmt"
 
 	"github.com/Chabuduo04/mate/back_end/models"
 	"github.com/Chabuduo04/mate/back_end/services"
@@ -20,6 +21,7 @@ func RegisterRoutes(r *gin.Engine, svc *services.Services) {
 		api.POST("/chat", makeChatHandler(svc))
 		api.POST("/asr", makeASRHandler(svc))
 		api.POST("/tts", makeTTSHandler(svc))
+		api.POST("/upload", makeKodoHandler(svc))
 	}
 }
 
@@ -100,7 +102,7 @@ func makeTTSHandler(svc *services.Services) gin.HandlerFunc {
 		}
 
 		// call TTS
-		audioBase64, err := svc.TTS.Synthesize(context.Background(), body.Text, body.Voice)
+		audioBase64, err := svc.TTS.Synthesize(body.Text, body.Voice)
 		if err != nil {
 			svc.Logger.Sugar().Errorf("tts error: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "tts error"})
@@ -109,5 +111,27 @@ func makeTTSHandler(svc *services.Services) gin.HandlerFunc {
 
 		// return base64 payload for frontend to decode/play
 		c.JSON(http.StatusOK, gin.H{"audio_base64": audioBase64})
+	}
+}
+
+func makeKodoHandler(svc *services.Services) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		fmt.Println("Receive request!")
+		file, _, err := c.Request.FormFile("audio")
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "audio part required"})
+			return
+		}
+		defer file.Close()
+		fmt.Println("Get file!")
+		// call Upload
+		err = svc.Storage.Upload(file, "user123")
+		if err != nil {
+			svc.Logger.Sugar().Errorf("upload error: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "asr error"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"upload": true})
 	}
 }

@@ -1,0 +1,49 @@
+package services
+
+import (
+	"context"
+	"io"
+	"fmt"
+    "github.com/qiniu/go-sdk/v7/storagev2/credentials"
+    "github.com/qiniu/go-sdk/v7/storagev2/http_client"
+    "github.com/qiniu/go-sdk/v7/storagev2/uploader"
+
+	"github.com/Chabuduo04/mate/back_end/config"
+)
+
+type StorageService interface {
+	Upload(file io.Reader, key string) error
+}
+
+type KodoService struct {
+	AccessKey string
+	SecretKey string
+	Bucket	  string
+}
+
+func NewKodoService() *KodoService {
+	return &KodoService{
+		AccessKey: config.AppConfig.AccessKey,
+		SecretKey: config.AppConfig.SecretKey,
+		Bucket:	   config.AppConfig.Bucket,
+	}
+}
+
+func (s *KodoService) Upload(file io.Reader, key string) error {
+	fmt.Println("Upload starting...")
+	mac := credentials.NewCredentials(s.AccessKey, s.SecretKey)
+	uploadManager := uploader.NewUploadManager(&uploader.UploadManagerOptions{
+		Options: http_client.Options{
+			Credentials: mac,
+		},
+	})
+	err := uploadManager.UploadReader(context.Background(), file, &uploader.ObjectOptions{
+		BucketName: s.Bucket,
+		ObjectName: &key,
+		FileName: "",
+	}, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
