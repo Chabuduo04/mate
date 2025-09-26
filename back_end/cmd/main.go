@@ -44,7 +44,7 @@ func main() {
 	// create API clients (currently mock implementations)
 	llm := services.NewQiniuLLMService()
 	asr := services.NewMockASRService()
-	tts := services.NewMockTTSService() // 使用模拟TTS服务进行演示
+	tts := services.NewQiniuTTSService() // 使用模拟TTS服务进行演示
 	kodo := services.NewKodoService()
 
 	// aggregate services

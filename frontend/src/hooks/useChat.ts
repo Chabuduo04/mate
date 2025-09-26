@@ -64,7 +64,7 @@ export const useChat = () => {
         isLoading: false,
       }));
     }
-  }, [state.currentRole]);
+  }, [state.currentRole, state.selectedVoice]);
 
   const transcribeAudio = useCallback(async (audioFile: File) => {
     try {
@@ -131,7 +131,7 @@ export const useChat = () => {
         isLoading: false,
       }));
     }
-  }, [state.currentRole]);
+  }, [state.currentRole, state.selectedVoice]);
 
   const clearMessages = useCallback(() => {
     setState(prev => ({

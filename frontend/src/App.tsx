@@ -189,11 +189,16 @@ function App() {
                   onChange={(e) => setSelectedVoice(e.target.value || undefined)}
                 >
                   <option value="">默认</option>
-                  {voices.map((v: any, idx: number) => (
-                    <option key={idx} value={v.voice_type || v.voice_type?.toString() || v}>
-                      {v.voice_name || v.voice_type || v}
-                    </option>
-                  ))}
+                  {voices.map((v: any, idx: number) => {
+                    // 只传 voice_type，label 用 voice_name
+                    const value = v.voice_type;
+                    const label = v.voice_name;
+                    return (
+                      <option key={idx} value={value}>
+                        {label}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
               <ChatInterface

@@ -65,12 +65,14 @@ func makeLLMHandler(svc *services.Services) gin.HandlerFunc {
 
         // call TTS to generate audio for the reply (respect selected voice if provided)
 		svc.Logger.Sugar().Infof("calling TTS with text: %s", reply)
-        audioBase64, err := svc.TTS.Synthesize(reply, req.Voice)
+		fmt.Println("voice_type:", req.Voice)
+		audioBase64, err := svc.TTS.Synthesize(reply, req.Voice)
 		if err != nil {
 			svc.Logger.Sugar().Errorf("tts error: %v", err)
 			// TTS失败不影响文字回复，继续返回文字
 			audioBase64 = ""
-		} else {
+		} else if audioBase64 != "" {
+			audioBase64 = "data:audio/mp3;base64," + audioBase64
 			svc.Logger.Sugar().Infof("TTS success, audio length: %d", len(audioBase64))
 		}
 
@@ -120,13 +122,15 @@ func makeTTSHandler(svc *services.Services) gin.HandlerFunc {
 		}
 
 		// call TTS
-        audioBase64, err := svc.TTS.Synthesize(body.Text, body.Voice)
+		audioBase64, err := svc.TTS.Synthesize(body.Text, body.Voice)
 		if err != nil {
 			svc.Logger.Sugar().Errorf("tts error: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "tts error"})
 			return
 		}
-
+		if audioBase64 != "" {
+			audioBase64 = "data:audio/mp3;base64," + audioBase64
+		}
 		// return base64 payload for frontend to decode/play
 		c.JSON(http.StatusOK, gin.H{"audio_base64": audioBase64})
 	}
@@ -227,11 +231,13 @@ func makeVoiceChatHandler(svc *services.Services) gin.HandlerFunc {
         if selectedVoice == "" {
             selectedVoice = c.PostForm("voice")
         }
-        audioBase64, err := svc.TTS.Synthesize(reply, selectedVoice)
+		audioBase64, err := svc.TTS.Synthesize(reply, selectedVoice)
 		if err != nil {
 			svc.Logger.Sugar().Errorf("tts error: %v", err)
 			// TTS失败不影响文字回复，继续返回文字
 			audioBase64 = ""
+		} else if audioBase64 != "" {
+			audioBase64 = "data:audio/mp3;base64," + audioBase64
 		}
 
 		// 11. 更新会话历史

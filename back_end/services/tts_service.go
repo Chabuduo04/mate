@@ -61,15 +61,8 @@ func NewQiniuTTSService() *QiniuTTSService {
 
 // ListVoicesRaw 调用提供方的 /voice/list 接口，返回原始响应体
 func (s *QiniuTTSService) ListVoicesRaw() ([]byte, error) {
-    base := config.AppConfig.ApiUrl
-    if base == "" {
-        base = s.URL
-    }
-    if base == "" {
-        return nil, fmt.Errorf("TTS base url 未配置")
-    }
-    endpoint := strings.TrimRight(base, "/") + "/voice/list"
-
+    base := s.URL
+    endpoint := strings.TrimRight(base, "/") + "/list"
     req, err := http.NewRequest("GET", endpoint, nil)
     if err != nil {
         return nil, fmt.Errorf("创建请求失败: %v", err)
@@ -98,6 +91,11 @@ func (s *QiniuTTSService) ListVoicesRaw() ([]byte, error) {
 
 func (s *QiniuTTSService) Synthesize(text string, voice string) (string, error) {
 	// 构建请求体
+	// voice 为空时使用默认值
+	defaultVoice := "qiniu_zh_female_tmjxxy"
+	if voice == "" {
+		voice = defaultVoice
+	}
 	requestBody := TTSRequest{
 		Audio: Audio{
 			VoiceType: voice,
@@ -110,8 +108,10 @@ func (s *QiniuTTSService) Synthesize(text string, voice string) (string, error) 
 	}
 
 	// 序列化请求体
+	base := s.URL
+    endpoint := strings.TrimRight(base, "/") + "/tts"
 	jsonData, err := json.Marshal(requestBody)
-	req, err := http.NewRequest("POST", s.URL, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", fmt.Errorf("创建请求失败: %v", err)
 	}

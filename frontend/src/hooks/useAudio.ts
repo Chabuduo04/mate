@@ -45,20 +45,25 @@ export const useAudio = () => {
 
   const playAudio = useCallback((audioBase64?: string) => {
     if (!audioBase64) return;
-    // Use the standard mp3 MIME type for widest compatibility
-    const src = `data:audio/mpeg;base64,${audioBase64}`;
+    let src = audioBase64;
+    // 如果不是 data URI，则默认拼接 mp3 前缀
+    if (!/^data:audio\//.test(audioBase64)) {
+      src = `data:audio/mp3;base64,${audioBase64}`;
+    }
     const audio = new Audio(src);
     audio.preload = 'auto';
     audio.onplay = () => setIsPlaying(true);
     audio.onended = () => setIsPlaying(false);
-    audio.onerror = (e) => {
+    audio.onerror = () => {
       setIsPlaying(false);
       // Fallback attempt with wav header if needed
-      const fallback = new Audio(`data:audio/wav;base64,${audioBase64}`);
-      fallback.onplay = () => setIsPlaying(true);
-      fallback.onended = () => setIsPlaying(false);
-      fallback.onerror = () => setIsPlaying(false);
-      fallback.play().catch(() => {});
+      if (!/^data:audio\/wav/.test(src)) {
+        const fallback = new Audio(`data:audio/wav;base64,${audioBase64}`);
+        fallback.onplay = () => setIsPlaying(true);
+        fallback.onended = () => setIsPlaying(false);
+        fallback.onerror = () => setIsPlaying(false);
+        fallback.play().catch(() => {});
+      }
     };
     const playPromise = audio.play();
     if (playPromise && typeof playPromise.catch === 'function') {
