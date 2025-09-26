@@ -51,6 +51,8 @@ type Additions struct {
 // ASRService interface for audio->text
 type ASRService interface {
 	Transcribe(ctx context.Context, audio io.Reader) (string, error)
+	TranscribeFromURL(audioURL string) (string, error)
+    // ListVoicesRaw is not part of ASR, but user said same base URL; ASR unchanged
 }
 
 // MockASRService reads incoming bytes and returns a canned text or file-size.
@@ -73,6 +75,11 @@ func (m *MockASRService) Transcribe(ctx context.Context, audio io.Reader) (strin
 	return fmt.Sprintf("（mock 转写）检测到 %d 字节音频，返回示例文本：你好，我想和角色聊天。", n), nil
 }
 
+func (m *MockASRService) TranscribeFromURL(audioURL string) (string, error) {
+	// Mock implementation for URL-based transcription
+	return fmt.Sprintf("（mock 转写）从URL %s 转写音频，返回示例文本：你好，我想和角色聊天。", audioURL), nil
+}
+
 type QiniuASRService struct {
 	APIKey string
 	URL    string
@@ -81,11 +88,16 @@ type QiniuASRService struct {
 func NewQiniuASRService() *QiniuASRService {
 	return &QiniuASRService{
 		APIKey: config.AppConfig.ApiKey,
-		URL:	config.AppConfig.TTSEndpoint,
+		URL:	config.AppConfig.ASREndpoint,
 	}
 }
-//todo:需要云存储
-func (s *QiniuASRService) Transcribe(audioURL string) (string, error) {
+func (s *QiniuASRService) Transcribe(ctx context.Context, audio io.Reader) (string, error) {
+	// For file-based transcription, we need to upload first
+	// This is a simplified implementation - in practice you might want to handle this differently
+	return "（文件转写）需要先上传文件到云存储", nil
+}
+
+func (s *QiniuASRService) TranscribeFromURL(audioURL string) (string, error) {
 	// 构建请求体
 	requestBody := ASRRequest{
 		Model: "asr",

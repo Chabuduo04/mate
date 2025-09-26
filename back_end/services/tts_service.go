@@ -1,13 +1,14 @@
 package services
 
 import (
-	"bytes"
-	"fmt"
-	"io"
-	"net/http"
-	"encoding/json"
+    "bytes"
+    "fmt"
+    "io"
+    "net/http"
+    "encoding/json"
+    "strings"
 
-	"github.com/Chabuduo04/mate/back_end/config"
+    "github.com/Chabuduo04/mate/back_end/config"
 )
 
 // TTSRequest 定义请求结构体
@@ -43,6 +44,7 @@ type ResponseAddition struct {
 // TTSService interface: text -> audio (return base64 for simplicity)
 type TTSService interface {
 	Synthesize(text string, voice string) (string, error) // returns base64 audio
+    ListVoicesRaw() ([]byte, error)
 }
 
 type QiniuTTSService struct {
@@ -55,6 +57,43 @@ func NewQiniuTTSService() *QiniuTTSService {
 		APIKey: config.AppConfig.ApiKey,
 		URL:	config.AppConfig.TTSEndpoint,
 	}
+}
+
+// ListVoicesRaw 调用提供方的 /voice/list 接口，返回原始响应体
+func (s *QiniuTTSService) ListVoicesRaw() ([]byte, error) {
+    base := config.AppConfig.ApiUrl
+    if base == "" {
+        base = s.URL
+    }
+    if base == "" {
+        return nil, fmt.Errorf("TTS base url 未配置")
+    }
+    endpoint := strings.TrimRight(base, "/") + "/voice/list"
+
+    req, err := http.NewRequest("GET", endpoint, nil)
+    if err != nil {
+        return nil, fmt.Errorf("创建请求失败: %v", err)
+    }
+    if s.APIKey != "" {
+        req.Header.Set("Authorization", "Bearer "+s.APIKey)
+    }
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        return nil, fmt.Errorf("发送请求失败: %v", err)
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusOK {
+        body, _ := io.ReadAll(resp.Body)
+        return nil, fmt.Errorf("API返回错误: %s, 响应体: %s", resp.Status, string(body))
+    }
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return nil, fmt.Errorf("读取响应体失败: %v", err)
+    }
+    return body, nil
 }
 
 func (s *QiniuTTSService) Synthesize(text string, voice string) (string, error) {
@@ -120,4 +159,22 @@ func (s *QiniuTTSService) Synthesize(text string, voice string) (string, error) 
 	// }
 
 	return ttsResponse.Data, nil
+}
+
+// MockTTSService 用于本地演示/测试
+type MockTTSService struct{}
+
+func NewMockTTSService() TTSService {
+    return &MockTTSService{}
+}
+
+func (m *MockTTSService) Synthesize(text string, voice string) (string, error) {
+    if text == "" {
+        return "", fmt.Errorf("empty text")
+    }
+    return "mock_audio_base64_data_for_" + text, nil
+}
+
+func (m *MockTTSService) ListVoicesRaw() ([]byte, error) {
+    return []byte(`["female_zh","male_zh","neutral_en"]`), nil
 }

@@ -12,7 +12,7 @@ import (
 )
 
 type StorageService interface {
-	Upload(file io.Reader, key string) error
+	Upload(file io.Reader, key string, fileName string) error
 }
 
 type KodoService struct {
@@ -29,7 +29,7 @@ func NewKodoService() *KodoService {
 	}
 }
 
-func (s *KodoService) Upload(file io.Reader, key string) error {
+func (s *KodoService) Upload(file io.Reader, key string, fileName string) error {
 	fmt.Println("Upload starting...")
 	mac := credentials.NewCredentials(s.AccessKey, s.SecretKey)
 	uploadManager := uploader.NewUploadManager(&uploader.UploadManagerOptions{
@@ -40,7 +40,7 @@ func (s *KodoService) Upload(file io.Reader, key string) error {
 	err := uploadManager.UploadReader(context.Background(), file, &uploader.ObjectOptions{
 		BucketName: s.Bucket,
 		ObjectName: &key,
-		FileName: "",
+		FileName: fileName,
 	}, nil)
 	if err != nil {
 		return err
