@@ -65,8 +65,13 @@ func makeLLMHandler(svc *services.Services) gin.HandlerFunc {
 
         // call TTS to generate audio for the reply (respect selected voice if provided)
 		svc.Logger.Sugar().Infof("calling TTS with text: %s", reply)
-		fmt.Println("voice_type:", req.Voice)
-		audioBase64, err := svc.TTS.Synthesize(reply, req.Voice)
+		// 优先用请求 voice，否则用角色默认 voice_type
+		voiceType := req.Voice
+		if voiceType == "" {
+			voiceType = role.VoiceType
+		}
+		fmt.Println("voice_type:", voiceType)
+		audioBase64, err := svc.TTS.Synthesize(reply, voiceType)
 		if err != nil {
 			svc.Logger.Sugar().Errorf("tts error: %v", err)
 			// TTS失败不影响文字回复，继续返回文字
