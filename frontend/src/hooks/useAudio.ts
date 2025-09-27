@@ -43,25 +43,46 @@ export const useAudio = () => {
     }
   }, [isRecording]);
 
+  // 当前播放的音频对象
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // 播放音频，确保同一时间只播放一段
   const playAudio = useCallback((audioBase64?: string) => {
     if (!audioBase64) return;
     let src = audioBase64;
-    // 如果不是 data URI，则默认拼接 mp3 前缀
     if (!/^data:audio\//.test(audioBase64)) {
       src = `data:audio/mp3;base64,${audioBase64}`;
     }
+    // 停止之前的音频
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current.currentTime = 0;
+      currentAudioRef.current = null;
+    }
     const audio = new Audio(src);
+    currentAudioRef.current = audio;
     audio.preload = 'auto';
     audio.onplay = () => setIsPlaying(true);
-    audio.onended = () => setIsPlaying(false);
+    audio.onended = () => {
+      setIsPlaying(false);
+      currentAudioRef.current = null;
+    };
     audio.onerror = () => {
       setIsPlaying(false);
+      currentAudioRef.current = null;
       // Fallback attempt with wav header if needed
       if (!/^data:audio\/wav/.test(src)) {
         const fallback = new Audio(`data:audio/wav;base64,${audioBase64}`);
+        currentAudioRef.current = fallback;
         fallback.onplay = () => setIsPlaying(true);
-        fallback.onended = () => setIsPlaying(false);
-        fallback.onerror = () => setIsPlaying(false);
+        fallback.onended = () => {
+          setIsPlaying(false);
+          currentAudioRef.current = null;
+        };
+        fallback.onerror = () => {
+          setIsPlaying(false);
+          currentAudioRef.current = null;
+        };
         fallback.play().catch(() => {});
       }
     };
@@ -69,6 +90,7 @@ export const useAudio = () => {
     if (playPromise && typeof playPromise.catch === 'function') {
       playPromise.catch(() => {
         setIsPlaying(false);
+        currentAudioRef.current = null;
       });
     }
   }, []);
