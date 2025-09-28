@@ -41,7 +41,53 @@ mate/
 
 ## 快速开始
 
-### 后端启动
+
+### 容器化部署（推荐）
+
+本项目已支持一键 Docker Compose 部署，适合本地和生产环境快速启动。
+
+#### 步骤：
+
+1. 配置环境变量（可选，见下方说明）
+2. 构建并启动服务：
+
+```bash
+docker-compose up --build
+```
+
+3. 访问服务：
+	- 后端接口：http://localhost:8080
+	- 前端页面：http://localhost:3000
+
+如需后台运行：
+
+```bash
+docker-compose up -d --build
+```
+
+#### 环境变量配置
+
+可在 `back_end` 目录下新建 `.env` 文件，或直接修改 `docker-compose.yml` 中的 `environment` 字段。
+
+示例：
+
+```env
+PORT=8080
+REDIS_ADDR=localhost:6379
+API_KEY=your_api_key
+API_URL=your_api_url
+LLM_MODEL=your_llm_model
+ASR_ENDPOINT=your_asr_endpoint
+TTS_ENDPOINT=your_tts_endpoint
+KODO_HOST=your_kodo_host
+ACCESS_KEY=your_access_key
+SECRET_KEY=your_secret_key
+BUCKET=your_bucket_name
+```
+
+---
+
+### 后端本地启动
 
 ```bash
 cd back_end
@@ -51,7 +97,7 @@ go run cmd/main.go
 
 后端服务将在 http://localhost:8080 启动。
 
-### 前端启动
+### 前端本地启动
 
 ```bash
 cd frontend
@@ -107,7 +153,7 @@ cd frontend
 
 ## 开发说明
 
-1. 确保已安装Go 1.21+和Node.js 18+
+1. 确保已安装Go 1.24+和Node.js 18+
 2. 后端和前端需要同时运行
 3. 前端通过代理访问后端API
 4. 语音功能需要HTTPS环境或localhost
