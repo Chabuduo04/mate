@@ -2,8 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Message, Role } from '../types';
 import { MessageBubble } from './MessageBubble';
 import { ChatInput } from './ChatInput';
-import { cn } from '../utils/cn';
-import { Bot, User, RotateCcw } from 'lucide-react';
+import { Bot, RotateCcw } from 'lucide-react';
 
 interface ChatInterfaceProps {
   currentRole: Role | null;

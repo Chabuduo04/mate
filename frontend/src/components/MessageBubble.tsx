@@ -1,7 +1,6 @@
-import React from 'react';
 import { Message } from '../types';
 import { cn } from '../utils/cn';
-import { Play, Volume2 } from 'lucide-react';
+import { Volume2 } from 'lucide-react';
 
 interface MessageBubbleProps {
   message: Message;

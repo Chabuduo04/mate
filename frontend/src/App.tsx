@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Role } from './types';
 import { roleService, ttsService } from './services/api';
 import { useChat } from './hooks/useChat';
@@ -20,8 +20,6 @@ function App() {
     selectRole,
     sendMessage,
     sendVoiceMessage,
-    transcribeAudio,
-    synthesizeSpeech,
     clearMessages,
     setSelectedVoice,
     selectedVoice,

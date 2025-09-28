@@ -1,9 +1,9 @@
 package config
 
 import (
+	"log"
 	"os"
 	"strconv"
-	"log"
 
 	"github.com/joho/godotenv"
 )
@@ -11,15 +11,15 @@ import (
 type Config struct {
 	Port        int
 	RedisAddr   string
-	ApiKey		string
-	ApiUrl		string
+	ApiKey      string
+	ApiUrl      string
 	LLMModel    string
 	ASREndpoint string
 	TTSEndpoint string
-	KodoHost	string
-	AccessKey 	string
-	SecretKey 	string
-	Bucket	  	string
+	KodoHost    string
+	AccessKey   string
+	SecretKey   string
+	Bucket      string
 }
 
 var AppConfig *Config
@@ -28,16 +28,16 @@ func InitConfig() {
 	_ = godotenv.Load()
 	AppConfig = &Config{
 		Port:        getEnvAsInt("PORT", 8080),
-		RedisAddr:   os.Getenv("REDIS_ADDR"),
-		ApiKey:	 os.Getenv("API_KEY"),
-		ApiUrl:	 os.Getenv("API_URL"),
-		LLMModel:    os.Getenv("LLM_MODEL"),
-		ASREndpoint: os.Getenv("ASR_ENDPOINT"),
-		TTSEndpoint: os.Getenv("TTS_ENDPOINT"),
-		KodoHost:	os.Getenv("KODO_HOST"),
-		AccessKey:	os.Getenv("ACCESS_KEY"),
-		SecretKey:	os.Getenv("SECRET_KEY"),
-		Bucket:		os.Getenv("BUCKET"),
+		RedisAddr:   getEnv("REDIS_ADDR", "localhost:6379"),
+		ApiKey:      getEnvRequired("API_KEY"),
+		ApiUrl:      getEnvRequired("API_URL"),
+		LLMModel:    getEnvRequired("LLM_MODEL"),
+		ASREndpoint: getEnvRequired("ASR_ENDPOINT"),
+		TTSEndpoint: getEnvRequired("TTS_ENDPOINT"),
+		KodoHost:    getEnvRequired("KODO_HOST"),
+		AccessKey:   getEnvRequired("ACCESS_KEY"),
+		SecretKey:   getEnvRequired("SECRET_KEY"),
+		Bucket:      getEnvRequired("BUCKET"),
 	}
 }
 
@@ -51,4 +51,21 @@ func getEnvAsInt(key string, defaultVal int) int {
 		return value
 	}
 	return defaultVal
+}
+
+// getEnv 读取字符串环境变量，支持默认值
+func getEnv(key, defaultVal string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+	return defaultVal
+}
+
+// getEnvRequired 读取必须的环境变量（敏感数据），未设置时退出
+func getEnvRequired(key string) string {
+	value, exists := os.LookupEnv(key)
+	if !exists || value == "" {
+		log.Fatalf("必须设置环境变量 %s", key)
+	}
+	return value
 }

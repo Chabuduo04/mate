@@ -1,0 +1,36 @@
+version: '3.8'
+services:
+  back_end:
+    build:
+      context: ./back_end
+    container_name: mate-backend
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    volumes:
+      - ./back_end/roles.json:/app/roles.json
+      - ./back_end/config:/app/config
+      - ./back_end/models:/app/models
+      - ./back_end/services:/app/services
+      - ./back_end/handlers:/app/handlers
+    restart: unless-stopped
+    depends_on:
+      - redis
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: mate-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - back_end
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: mate-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
