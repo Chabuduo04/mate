@@ -6,11 +6,27 @@ export const useAudio = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  // 记录实际使用的 mimeType
+  const mimeTypeRef = useRef<string>('');
 
   const startRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      // 自动适配 mimeType
+      let mimeType = '';
+      if (window.MediaRecorder && MediaRecorder.isTypeSupported) {
+        if (MediaRecorder.isTypeSupported('audio/webm')) {
+          mimeType = 'audio/webm';
+        } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+          mimeType = 'audio/ogg';
+        } else if (MediaRecorder.isTypeSupported('audio/wav')) {
+          mimeType = 'audio/wav';
+        }
+      }
+      mimeTypeRef.current = mimeType;
+      const mediaRecorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
@@ -21,7 +37,7 @@ export const useAudio = () => {
       };
 
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(chunksRef.current, { type: 'audio/wav' });
+        const audioBlob = new Blob(chunksRef.current, { type: mimeTypeRef.current || 'audio/webm' });
         const audioUrl = URL.createObjectURL(audioBlob);
         if (audioRef.current) {
           audioRef.current.src = audioUrl;
@@ -36,11 +52,22 @@ export const useAudio = () => {
     }
   }, []);
 
-  const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
+  // 停止录音，返回 Promise，onstop 完成后 resolve
+  const stopRecording = useCallback((): Promise<void> => {
+    return new Promise((resolve) => {
+      if (mediaRecorderRef.current && isRecording) {
+        const recorder = mediaRecorderRef.current;
+        const handleStop = () => {
+          recorder.removeEventListener('stop', handleStop);
+          setIsRecording(false);
+          resolve();
+        };
+        recorder.addEventListener('stop', handleStop);
+        recorder.stop();
+      } else {
+        resolve();
+      }
+    });
   }, [isRecording]);
 
   // 当前播放的音频对象
@@ -97,8 +124,10 @@ export const useAudio = () => {
 
   const getRecordedAudio = useCallback((): File | null => {
     if (chunksRef.current.length > 0) {
-      const audioBlob = new Blob(chunksRef.current, { type: 'audio/wav' });
-      return new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
+      const mimeType = mimeTypeRef.current || 'audio/webm';
+      const ext = mimeType.includes('ogg') ? 'ogg' : mimeType.includes('wav') ? 'wav' : 'webm';
+      const audioBlob = new Blob(chunksRef.current, { type: mimeType });
+      return new File([audioBlob], `recording.${ext}`, { type: mimeType });
     }
     return null;
   }, []);

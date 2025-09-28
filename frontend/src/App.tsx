@@ -87,8 +87,7 @@ function App() {
   const handleStopRecording = async () => {
     try {
       await stopRecording();
-      
-      // 获取录制的音频并直接发送语音消息
+      // onstop 事件已完成，音频数据已准备好
       const audioFile = getRecordedAudio();
       if (audioFile) {
         await sendVoiceMessage(audioFile);
@@ -148,6 +147,11 @@ function App() {
       </div>
     );
   }
+
+  // 返回角色选择页
+  const handleBackToRoleSelect = () => {
+    selectRole(null);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -211,6 +215,7 @@ function App() {
                 onStopRecording={handleStopRecording}
                 onPlayAudio={handlePlayAudio}
                 onClearMessages={clearMessages}
+                onBack={handleBackToRoleSelect}
               />
             </div>
           )}

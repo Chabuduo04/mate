@@ -43,7 +43,7 @@ func main() {
 
 	// create API clients (currently mock implementations)
 	llm := services.NewQiniuLLMService()
-	asr := services.NewMockASRService()
+	asr := services.NewQiniuASRService()
 	tts := services.NewQiniuTTSService() // 使用模拟TTS服务进行演示
 	kodo := services.NewKodoService()
 
@@ -54,7 +54,7 @@ func main() {
 		LLM:          llm,
 		ASR:          asr,
 		TTS:          tts,
-		Storage:	  kodo,
+		Storage:      kodo,
 		Logger:       logger,
 		LLMModel:     cfg.LLMModel,
 		ASREndpoint:  cfg.ASREndpoint,

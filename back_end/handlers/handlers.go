@@ -1,15 +1,17 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
-	"net/http"
-	"time"
 	"fmt"
+	"io"
+	"net/http"
 	"path/filepath"
+	"time"
 
+	"github.com/Chabuduo04/mate/back_end/config"
 	"github.com/Chabuduo04/mate/back_end/models"
 	"github.com/Chabuduo04/mate/back_end/services"
-	"github.com/Chabuduo04/mate/back_end/config"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -26,7 +28,7 @@ func RegisterRoutes(r *gin.Engine, svc *services.Services) {
 		api.POST("/tts", makeTTSHandler(svc))
 		api.POST("/upload", makeKodoHandler(svc))
 		api.POST("/voice-chat", makeVoiceChatHandler(svc))
-        api.GET("/voice/list", makeVoiceListHandler(svc))
+		api.GET("/voice/list", makeVoiceListHandler(svc))
 	}
 }
 
@@ -52,18 +54,26 @@ func makeLLMHandler(svc *services.Services) gin.HandlerFunc {
 		}
 		hist, _ := svc.SessionStore.Get(ctx, sessKey)
 
+		// 解析历史为ChatMessage数组
+		var messages []services.ChatMessage
+		messages = append(messages, services.ChatMessage{Role: "system", Content: role.Prompt})
+		// 解析历史
+		if hist != "" {
+			lines := splitHistory(hist)
+			messages = append(messages, lines...)
+		}
+		// 当前用户消息
+		messages = append(messages, services.ChatMessage{Role: "user", Content: req.Message})
+
 		// call LLM
-		reply, err := svc.LLM.Chat([]services.ChatMessage{
-			{Role: "system", Content: role.Prompt},
-			{Role: "user", Content: req.Message},
-		})
+		reply, err := svc.LLM.Chat(messages)
 		if err != nil {
 			svc.Logger.Sugar().Errorf("llm error: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "llm error"})
 			return
 		}
 
-        // call TTS to generate audio for the reply (respect selected voice if provided)
+		// call TTS to generate audio for the reply (respect selected voice if provided)
 		svc.Logger.Sugar().Infof("calling TTS with text: %s", reply)
 		// 优先用请求 voice，否则用角色默认 voice_type
 		voiceType := req.Voice
@@ -95,16 +105,33 @@ func makeLLMHandler(svc *services.Services) gin.HandlerFunc {
 
 func makeASRHandler(svc *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		file, _, err := c.Request.FormFile("audio")
+		file, header, err := c.Request.FormFile("audio")
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "audio part required"})
 			return
 		}
 		defer file.Close()
 
-		ctx := context.Background()
-		// call ASR
-		text, err := svc.ASR.Transcribe(ctx, file)
+		// 生成唯一key
+		fileExt := filepath.Ext(header.Filename)
+		if fileExt == "" {
+			fileExt = ".mp3" // 默认扩展名
+		}
+		uniqueKey := fmt.Sprintf("asr/%s%s", uuid.New().String(), fileExt)
+
+		// 上传到云存储
+		err = svc.Storage.Upload(file, uniqueKey, header.Filename)
+		if err != nil {
+			svc.Logger.Sugar().Errorf("upload error: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "upload error"})
+			return
+		}
+
+		// 构建音频URL
+		audioURL := fmt.Sprintf("%s/%s", config.AppConfig.KodoHost, uniqueKey)
+
+		// 调用ASR
+		text, err := svc.ASR.TranscribeFromURL(audioURL)
 		if err != nil {
 			svc.Logger.Sugar().Errorf("asr error: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "asr error"})
@@ -171,6 +198,13 @@ func makeVoiceChatHandler(svc *services.Services) gin.HandlerFunc {
 		}
 		defer file.Close()
 
+		// 1.1 读取文件内容到内存，避免多次读取导致无声
+		fileBytes, err := io.ReadAll(file)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "read audio error"})
+			return
+		}
+
 		// 2. 获取角色ID和用户ID
 		roleID := c.PostForm("role_id")
 		userID := c.PostForm("user_id")
@@ -193,8 +227,9 @@ func makeVoiceChatHandler(svc *services.Services) gin.HandlerFunc {
 		}
 		uniqueKey := fmt.Sprintf("voice-chat/%s%s", uuid.New().String(), fileExt)
 
-		// 5. 上传音频文件到云存储
-		err = svc.Storage.Upload(file, uniqueKey, header.Filename)
+		// 5. 上传音频文件到云存储（用新 reader）
+		uploadReader := bytes.NewReader(fileBytes)
+		err = svc.Storage.Upload(uploadReader, uniqueKey, header.Filename)
 		if err != nil {
 			svc.Logger.Sugar().Errorf("upload error: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "upload error"})
@@ -202,8 +237,8 @@ func makeVoiceChatHandler(svc *services.Services) gin.HandlerFunc {
 		}
 
 		// 6. 构建音频URL
-		audioURL := fmt.Sprintf("%s/%s", config.AppConfig.KodoHost, uniqueKey)
-
+		audioURL := fmt.Sprintf("%s%s/%s", "http://", config.AppConfig.KodoHost, uniqueKey)
+		fmt.Println("audioURL:", audioURL)
 		// 7. 调用ASR将音频转换为文字
 		transcribedText, err := svc.ASR.TranscribeFromURL(audioURL)
 		if err != nil {
@@ -220,22 +255,29 @@ func makeVoiceChatHandler(svc *services.Services) gin.HandlerFunc {
 		}
 		hist, _ := svc.SessionStore.Get(ctx, sessKey)
 
+		// 9. 组装历史消息
+		var messages []services.ChatMessage
+		messages = append(messages, services.ChatMessage{Role: "system", Content: role.Prompt})
+		if hist != "" {
+			lines := splitHistory(hist)
+			messages = append(messages, lines...)
+		}
+		messages = append(messages, services.ChatMessage{Role: "user", Content: transcribedText})
+
 		// 9. 调用LLM处理文字
-		reply, err := svc.LLM.Chat([]services.ChatMessage{
-			{Role: "system", Content: role.Prompt},
-			{Role: "user", Content: transcribedText},
-		})
+		reply, err := svc.LLM.Chat(messages)
+
 		if err != nil {
 			svc.Logger.Sugar().Errorf("llm error: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "llm error"})
 			return
 		}
 
-        // 10. 调用TTS将回复转换为语音（允许通过query/form传入voice选择）
-        selectedVoice := c.Query("voice")
-        if selectedVoice == "" {
-            selectedVoice = c.PostForm("voice")
-        }
+		// 10. 调用TTS将回复转换为语音（允许通过query/form传入voice选择）
+		selectedVoice := c.Query("voice")
+		if selectedVoice == "" {
+			selectedVoice = c.PostForm("voice")
+		}
 		audioBase64, err := svc.TTS.Synthesize(reply, selectedVoice)
 		if err != nil {
 			svc.Logger.Sugar().Errorf("tts error: %v", err)
@@ -259,13 +301,39 @@ func makeVoiceChatHandler(svc *services.Services) gin.HandlerFunc {
 }
 
 func makeVoiceListHandler(svc *services.Services) gin.HandlerFunc {
-    return func(c *gin.Context) {
-        body, err := svc.TTS.ListVoicesRaw()
-        if err != nil {
-            svc.Logger.Sugar().Errorf("list voices error: %v", err)
-            c.JSON(http.StatusInternalServerError, gin.H{"error": "list voices error"})
-            return
-        }
-        c.Data(http.StatusOK, "application/json", body)
-    }
+	return func(c *gin.Context) {
+		body, err := svc.TTS.ListVoicesRaw()
+		if err != nil {
+			svc.Logger.Sugar().Errorf("list voices error: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "list voices error"})
+			return
+		}
+		c.Data(http.StatusOK, "application/json", body)
+	}
+}
+
+// splitHistory 将历史字符串解析为ChatMessage数组
+func splitHistory(hist string) []services.ChatMessage {
+	var msgs []services.ChatMessage
+	lines := make([]string, 0)
+	curr := ""
+	for _, r := range hist {
+		if r == '\n' {
+			lines = append(lines, curr)
+			curr = ""
+		} else {
+			curr += string(r)
+		}
+	}
+	if curr != "" {
+		lines = append(lines, curr)
+	}
+	for _, line := range lines {
+		if len(line) > 6 && line[:6] == "User: " {
+			msgs = append(msgs, services.ChatMessage{Role: "user", Content: line[6:]})
+		} else if len(line) > 6 && line[:6] == "Role: " {
+			msgs = append(msgs, services.ChatMessage{Role: "assistant", Content: line[6:]})
+		}
+	}
+	return msgs
 }

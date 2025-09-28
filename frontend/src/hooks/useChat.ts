@@ -12,7 +12,7 @@ export const useChat = () => {
     selectedVoice: undefined,
   });
 
-  const selectRole = useCallback((role: Role) => {
+  const selectRole = useCallback((role: Role | null) => {
     setState(prev => ({
       ...prev,
       currentRole: role,

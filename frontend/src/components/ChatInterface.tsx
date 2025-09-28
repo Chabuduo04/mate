@@ -15,6 +15,7 @@ interface ChatInterfaceProps {
   onStopRecording: () => void;
   onPlayAudio: (audioBase64: string) => void;
   onClearMessages: () => void;
+  onBack?: () => void;
 }
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({
@@ -27,6 +28,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   onStopRecording,
   onPlayAudio,
   onClearMessages,
+  onBack,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -60,6 +62,16 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       <div className="bg-white border-b border-gray-200 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
+            {/* 返回按钮 */}
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="mr-3 p-2 text-gray-400 hover:text-primary-600 transition-colors"
+                title="返回角色选择"
+              >
+                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+              </button>
+            )}
             <div className="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white font-bold">
               {currentRole.name.charAt(0)}
             </div>
