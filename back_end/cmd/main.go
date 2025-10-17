@@ -24,7 +24,7 @@ func main() {
 	// init session store (Redis or in-memory)
 	var sessionStore services.SessionStore
 	if cfg.RedisAddr != "" {
-		redisStore, err := services.NewRedisSessionStore(cfg.RedisAddr)
+		redisStore, err := services.NewRedisSessionStore()
 		if err != nil {
 			logger.Sugar().Warnf("connect redis fail: %v, fallback to in-memory", err)
 			sessionStore = services.NewMemorySessionStore()

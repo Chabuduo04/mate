@@ -48,8 +48,11 @@ func makeLLMHandler(svc *services.Services) gin.HandlerFunc {
 
 		// get session context
 		ctx := context.Background()
-		sessKey := req.UserID
-		if sessKey == "" {
+		// sessKey应包含userID和roleID，确保同一用户与不同角色的会话分开
+		var sessKey string
+		if req.UserID != "" {
+			sessKey = req.UserID + ":" + req.RoleID
+		} else {
 			sessKey = "anon:" + req.RoleID
 		}
 		hist, _ := svc.SessionStore.Get(ctx, sessKey)

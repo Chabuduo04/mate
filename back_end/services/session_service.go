@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+
+	"github.com/Chabuduo04/mate/back_end/config"
 )
 
 type SessionStore interface {
@@ -16,9 +18,11 @@ type RedisSessionStore struct {
 	rdb *redis.Client
 }
 
-func NewRedisSessionStore(addr string) (*RedisSessionStore, error) {
+func NewRedisSessionStore() (*RedisSessionStore, error) {
+	cfg := config.AppConfig
 	rdb := redis.NewClient(&redis.Options{
-		Addr: addr,
+		Addr:     cfg.RedisAddr,
+		Password: cfg.RedisPass,
 	})
 	ctx := context.Background()
 	if err := rdb.Ping(ctx).Err(); err != nil {

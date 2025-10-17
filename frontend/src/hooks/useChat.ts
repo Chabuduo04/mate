@@ -40,7 +40,7 @@ export const useChat = () => {
       const response = await chatService.sendMessage({
         role_id: state.currentRole.id,
         message: content.trim(),
-        user_id: 'user123', // 可以改为动态用户ID
+        user_id: '', // 可以改为动态用户ID
         voice: state.selectedVoice,
       });
 

@@ -11,6 +11,7 @@ import (
 type Config struct {
 	Port        int
 	RedisAddr   string
+	RedisPass   string
 	ApiKey      string
 	ApiUrl      string
 	LLMModel    string
@@ -29,6 +30,7 @@ func InitConfig() {
 	AppConfig = &Config{
 		Port:        getEnvAsInt("PORT", 8080),
 		RedisAddr:   getEnv("REDIS_ADDR", "localhost:6379"),
+		RedisPass:   os.Getenv("REDIS_PASS"),
 		ApiKey:      getEnvRequired("API_KEY"),
 		ApiUrl:      getEnvRequired("API_URL"),
 		LLMModel:    getEnvRequired("LLM_MODEL"),
