@@ -50,10 +50,11 @@ type QiniuLLMService struct {
 }
 
 func NewQiniuLLMService() *QiniuLLMService {
+	cfg := config.GetConfig()
 	return &QiniuLLMService{
-		APIKey: config.AppConfig.ApiKey,
-		URL:    config.AppConfig.ApiUrl,
-		Model:  config.AppConfig.LLMModel,
+		APIKey: cfg.LLM.ApiKey,
+		URL:    cfg.LLM.ApiUrl,
+		Model:  cfg.LLM.Model,
 	}
 }
 

@@ -3,71 +3,98 @@ package config
 import (
 	"log"
 	"os"
-	"strconv"
 
-	"github.com/joho/godotenv"
+	"github.com/BurntSushi/toml"
 )
 
+type MainConfig struct {
+	AppName string `toml:"appName"`
+	Host    string `toml:"host"`
+	Port    int    `toml:"port"`
+}
+
+type JWTConfig struct {
+	Secret string `toml:"secret"`
+}
+
+type MysqlConfig struct {
+	Host         string `toml:"host"`
+	Port         int    `toml:"port"`
+	User         string `toml:"user"`
+	Password     string `toml:"password"`
+	DatabaseName string `toml:"databaseName"`
+}
+
+type RedisConfig struct {
+	Host     string `toml:"host"`
+	Port     int    `toml:"port"`
+	Password string `toml:"password"`
+	Db       int    `toml:"db"`
+}
+
+type LLMConfig struct {
+	ApiKey string `toml:"apiKey"`
+	ApiUrl string `toml:"apiUrl"`
+	Model  string `toml:"model"`
+}
+
+type ASRConfig struct {
+	ApiKey   string `toml:"apiKey"`
+	ApiUrl   string `toml:"apiUrl"`
+	Endpoint string `toml:"endpoint"`
+}
+
+type TTSConfig struct {
+	ApiKey   string `toml:"apiKey"`
+	ApiUrl   string `toml:"apiUrl"`
+	Endpoint string `toml:"endpoint"`
+}
+
+type KodoConfig struct {
+	Host      string `toml:"host"`
+	AccessKey string `toml:"accessKey"`
+	SecretKey string `toml:"secretKey"`
+	Bucket    string `toml:"bucket"`
+}
+
 type Config struct {
-	Port        int
-	RedisAddr   string
-	RedisPass   string
-	ApiKey      string
-	ApiUrl      string
-	LLMModel    string
-	ASREndpoint string
-	TTSEndpoint string
-	KodoHost    string
-	AccessKey   string
-	SecretKey   string
-	Bucket      string
+	Main  MainConfig  `toml:"main"`
+	JWT   JWTConfig   `toml:"jwt"`
+	Mysql MysqlConfig `toml:"mysql"`
+	Redis RedisConfig `toml:"redis"`
+	LLM   LLMConfig   `toml:"llm"`
+	ASR   ASRConfig   `toml:"asr"`
+	TTS   TTSConfig   `toml:"tts"`
+	Kodo  KodoConfig  `toml:"kodo"`
 }
 
-var AppConfig *Config
+var config *Config
 
-func InitConfig() {
-	_ = godotenv.Load()
-	AppConfig = &Config{
-		Port:        getEnvAsInt("PORT", 8080),
-		RedisAddr:   getEnv("REDIS_ADDR", "localhost:6379"),
-		RedisPass:   os.Getenv("REDIS_PASS"),
-		ApiKey:      getEnvRequired("API_KEY"),
-		ApiUrl:      getEnvRequired("API_URL"),
-		LLMModel:    getEnvRequired("LLM_MODEL"),
-		ASREndpoint: getEnvRequired("ASR_ENDPOINT"),
-		TTSEndpoint: getEnvRequired("TTS_ENDPOINT"),
-		KodoHost:    getEnvRequired("KODO_HOST"),
-		AccessKey:   getEnvRequired("ACCESS_KEY"),
-		SecretKey:   getEnvRequired("SECRET_KEY"),
-		Bucket:      getEnvRequired("BUCKET"),
+// LoadConfig 从指定的 TOML 文件加载配置，优先使用环境变量 MATE_CONFIG_PATH 指定路径
+func LoadConfig() error {
+	// 允许通过环境变量覆盖配置路径
+	path := os.Getenv("MATE_CONFIG_PATH")
+	if path == "" {
+		path = "./config/config.toml"
 	}
+
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		log.Fatalf("配置文件不存在: %s", path)
+		return err
+	}
+
+	if _, err := toml.DecodeFile(path, config); err != nil {
+		log.Fatalf("解析配置文件失败: %v", err)
+		return err
+	}
+
+	return nil
 }
 
-// getEnvAsInt 读取整数环境变量
-func getEnvAsInt(key string, defaultVal int) int {
-	if valueStr, exists := os.LookupEnv(key); exists {
-		value, err := strconv.Atoi(valueStr)
-		if err != nil {
-			log.Fatalf("环境变量 %s 必须是整数，但得到: %s", key, valueStr)
-		}
-		return value
+func GetConfig() *Config {
+	if config == nil {
+		config = new(Config)
+		_ = LoadConfig()
 	}
-	return defaultVal
-}
-
-// getEnv 读取字符串环境变量，支持默认值
-func getEnv(key, defaultVal string) string {
-	if value, exists := os.LookupEnv(key); exists {
-		return value
-	}
-	return defaultVal
-}
-
-// getEnvRequired 读取必须的环境变量（敏感数据），未设置时退出
-func getEnvRequired(key string) string {
-	value, exists := os.LookupEnv(key)
-	if !exists || value == "" {
-		log.Fatalf("必须设置环境变量 %s", key)
-	}
-	return value
+	return config
 }

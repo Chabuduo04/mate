@@ -19,16 +19,26 @@ import (
 func RegisterRoutes(r *gin.Engine, svc *services.Services) {
 	api := r.Group("/api")
 	{
+		// auth routes
+		RegisterAuthRoutes(api, svc)
+
+		// public routes
 		api.GET("/roles", func(c *gin.Context) {
 			roles := svc.RoleService.ListRoles()
 			c.JSON(http.StatusOK, roles)
 		})
-		api.POST("/llm", makeLLMHandler(svc))
-		api.POST("/asr", makeASRHandler(svc))
-		api.POST("/tts", makeTTSHandler(svc))
-		api.POST("/upload", makeKodoHandler(svc))
-		api.POST("/voice-chat", makeVoiceChatHandler(svc))
-		api.GET("/voice/list", makeVoiceListHandler(svc))
+
+		// protected routes - require JWT auth
+		protected := api.Group("")
+		protected.Use(AuthRequired())
+		{
+			protected.POST("/llm", makeLLMHandler(svc))
+			protected.POST("/asr", makeASRHandler(svc))
+			protected.POST("/tts", makeTTSHandler(svc))
+			protected.POST("/upload", makeKodoHandler(svc))
+			protected.POST("/voice-chat", makeVoiceChatHandler(svc))
+			protected.GET("/voice/list", makeVoiceListHandler(svc))
+		}
 	}
 }
 
@@ -131,7 +141,7 @@ func makeASRHandler(svc *services.Services) gin.HandlerFunc {
 		}
 
 		// 构建音频URL
-		audioURL := fmt.Sprintf("%s/%s", config.AppConfig.KodoHost, uniqueKey)
+		audioURL := fmt.Sprintf("%s/%s", config.GetConfig().Kodo.Host, uniqueKey)
 
 		// 调用ASR
 		text, err := svc.ASR.TranscribeFromURL(audioURL)
@@ -240,7 +250,7 @@ func makeVoiceChatHandler(svc *services.Services) gin.HandlerFunc {
 		}
 
 		// 6. 构建音频URL
-		audioURL := fmt.Sprintf("%s%s/%s", "http://", config.AppConfig.KodoHost, uniqueKey)
+		audioURL := fmt.Sprintf("%s%s/%s", "http://", config.GetConfig().Kodo.Host, uniqueKey)
 		fmt.Println("audioURL:", audioURL)
 		// 7. 调用ASR将音频转换为文字
 		transcribedText, err := svc.ASR.TranscribeFromURL(audioURL)

@@ -1,0 +1,41 @@
+[main]
+appName = "mate"
+host = "0.0.0.0"
+port = 8080
+
+[jwt]
+secret = "your_secret_key"
+
+[mysql]
+host = "127.0.0.1"
+port = 3306
+user = "root"
+password = "password"
+databaseName = "mate_db"
+
+[redis]
+host = "127.0.0.1"
+port = 6379
+password = "password"
+db = 0
+
+[llm]
+apiKey = "your_api_key"
+apiUrl = "your_api_url"
+model = "model_name"
+
+[asr]
+apiKey = "your_api_key"
+apiUrl = "your_api_url"
+endpoint = "endpoint"
+
+[tts]
+apiKey = "your_api_key"
+apiUrl = "your_api_url"
+endpoint = "endpoint"
+
+[kodo]
+host = "xxx.com"
+accessKey = "your_access_key"
+secretKey = "your_secret_key"
+bucket = "bucket_name"

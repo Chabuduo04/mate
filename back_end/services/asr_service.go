@@ -1,21 +1,21 @@
 package services
 
 import (
-	"context"
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"errors"
 
 	"github.com/Chabuduo04/mate/back_end/config"
 )
 
 // ASRRequest 定义ASR请求结构体
 type ASRRequest struct {
-	Model string `json:"model"`
-	Audio AudioAsr  `json:"audio"`
+	Model string   `json:"model"`
+	Audio AudioAsr `json:"audio"`
 }
 
 type AudioAsr struct {
@@ -25,8 +25,8 @@ type AudioAsr struct {
 
 // ASRResponse 定义ASR响应结构体
 type ASRResponse struct {
-	ReqID     string `json:"reqid"`
-	Operation string `json:"operation"`
+	ReqID     string  `json:"reqid"`
+	Operation string  `json:"operation"`
 	Data      ASRData `json:"data"`
 }
 
@@ -52,7 +52,7 @@ type Additions struct {
 type ASRService interface {
 	Transcribe(ctx context.Context, audio io.Reader) (string, error)
 	TranscribeFromURL(audioURL string) (string, error)
-    // ListVoicesRaw is not part of ASR, but user said same base URL; ASR unchanged
+	// ListVoicesRaw is not part of ASR, but user said same base URL; ASR unchanged
 }
 
 // MockASRService reads incoming bytes and returns a canned text or file-size.
@@ -86,9 +86,10 @@ type QiniuASRService struct {
 }
 
 func NewQiniuASRService() *QiniuASRService {
+	cfg := config.GetConfig()
 	return &QiniuASRService{
-		APIKey: config.AppConfig.ApiKey,
-		URL:	config.AppConfig.ASREndpoint,
+		APIKey: cfg.ASR.ApiKey,
+		URL:    cfg.ASR.Endpoint,
 	}
 }
 func (s *QiniuASRService) Transcribe(ctx context.Context, audio io.Reader) (string, error) {

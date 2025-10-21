@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/Chabuduo04/mate/back_end/config"
+	"github.com/Chabuduo04/mate/back_end/db"
 	"github.com/Chabuduo04/mate/back_end/handlers"
 	"github.com/Chabuduo04/mate/back_end/services"
 )
@@ -18,12 +19,15 @@ func main() {
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
 
-	config.InitConfig()
-	cfg := config.AppConfig
+	// load config
+	cfg := config.GetConfig()
+
+	// initialize database (GORM)
+	db.InitDB()
 
 	// init session store (Redis or in-memory)
 	var sessionStore services.SessionStore
-	if cfg.RedisAddr != "" {
+	if cfg.Redis.Host != "" {
 		redisStore, err := services.NewRedisSessionStore()
 		if err != nil {
 			logger.Sugar().Warnf("connect redis fail: %v, fallback to in-memory", err)
@@ -44,27 +48,28 @@ func main() {
 	// create API clients (currently mock implementations)
 	llm := services.NewQiniuLLMService()
 	asr := services.NewQiniuASRService()
-	tts := services.NewQiniuTTSService() // 使用模拟TTS服务进行演示
+	tts := services.NewQiniuTTSService()
 	kodo := services.NewKodoService()
 
 	// aggregate services
 	svc := &services.Services{
 		RoleService:  roleSvc,
 		SessionStore: sessionStore,
+		UserService:  services.NewUserService(),
 		LLM:          llm,
 		ASR:          asr,
 		TTS:          tts,
 		Storage:      kodo,
 		Logger:       logger,
-		LLMModel:     cfg.LLMModel,
-		ASREndpoint:  cfg.ASREndpoint,
-		TTSEndpoint:  cfg.TTSEndpoint,
+		LLMModel:     cfg.LLM.Model,
+		ASREndpoint:  cfg.ASR.Endpoint,
+		TTSEndpoint:  cfg.TTS.Endpoint,
 	}
 
 	router := gin.Default()
 	handlers.RegisterRoutes(router, svc)
 
-	addr := fmt.Sprintf(":%d", cfg.Port)
+	addr := fmt.Sprintf(":%d", cfg.Main.Port)
 	srv := &http.Server{
 		Addr:         addr,
 		Handler:      router,

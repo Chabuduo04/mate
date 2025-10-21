@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Role } from './types';
 import { roleService, ttsService } from './services/api';
+import { authService } from './services/api';
 import { useChat } from './hooks/useChat';
 import { useAudio } from './hooks/useAudio';
 import { RoleSelector } from './components/RoleSelector';
 import { ChatInterface } from './components/ChatInterface';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { cn } from './utils/cn';
+import { LoginForm } from './components/LoginForm';
+import { RegisterForm } from './components/RegisterForm';
 
 function App() {
   const [roles, setRoles] = useState<Role[]>([]);
@@ -55,6 +58,8 @@ function App() {
 
   // 加载音色列表
   const [voices, setVoices] = useState<any[]>([]);
+  const [username, setUsername] = useState<string | null>(localStorage.getItem('username'));
+  const [showAuth, setShowAuth] = useState<'login' | 'register' | null>(null);
   useEffect(() => {
     const loadVoices = async () => {
       try {
@@ -154,18 +159,38 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">
-            Mate
-          </h1>
-          <p className="text-gray-600">
-            AI角色扮演语音聊天平台
-          </p>
+        <div className="text-center mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-800 mb-2">Mate</h1>
+            <p className="text-gray-600">AI角色扮演语音聊天平台</p>
+          </div>
+          <div>
+                {username ? (
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-700">{username}</span>
+                <button className="btn-secondary" onClick={() => { authService.logout(); setUsername(null); }}>登出</button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <button className="btn-primary" onClick={() => setShowAuth('login')}>登录</button>
+                <button className="btn-outline" onClick={() => setShowAuth('register')}>注册</button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="max-w-6xl mx-auto">
           {!currentRole ? (
             <div className="card p-8">
+              {showAuth && (
+                <div className="mb-4">
+                  {showAuth === 'login' ? (
+                    <LoginForm onLogin={() => { setUsername(localStorage.getItem('username')); setShowAuth(null); }} />
+                  ) : (
+                    <RegisterForm onRegistered={() => { setShowAuth('login'); }} />
+                  )}
+                </div>
+              )}
               {isLoadingRoles ? (
                 <div className="text-center">
                   <LoadingSpinner size="lg" className="mx-auto mb-4" />

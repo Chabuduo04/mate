@@ -2,11 +2,11 @@ package services
 
 import (
 	"context"
+	"strconv"
 	"time"
 
-	"github.com/redis/go-redis/v9"
-
 	"github.com/Chabuduo04/mate/back_end/config"
+	"github.com/redis/go-redis/v9"
 )
 
 type SessionStore interface {
@@ -19,10 +19,10 @@ type RedisSessionStore struct {
 }
 
 func NewRedisSessionStore() (*RedisSessionStore, error) {
-	cfg := config.AppConfig
+	cfg := config.GetConfig()
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     cfg.RedisAddr,
-		Password: cfg.RedisPass,
+		Addr:     cfg.Redis.Host + ":" + strconv.Itoa(cfg.Redis.Port),
+		Password: cfg.Redis.Password,
 	})
 	ctx := context.Background()
 	if err := rdb.Ping(ctx).Err(); err != nil {

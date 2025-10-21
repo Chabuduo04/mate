@@ -1,14 +1,14 @@
 package services
 
 import (
-    "bytes"
-    "fmt"
-    "io"
-    "net/http"
-    "encoding/json"
-    "strings"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"strings"
 
-    "github.com/Chabuduo04/mate/back_end/config"
+	"github.com/Chabuduo04/mate/back_end/config"
 )
 
 // TTSRequest 定义请求结构体
@@ -18,8 +18,8 @@ type TTSRequest struct {
 }
 
 type Audio struct {
-	VoiceType string  `json:"voice_type"`
-	Encoding  string  `json:"encoding"`
+	VoiceType  string  `json:"voice_type"`
+	Encoding   string  `json:"encoding"`
 	SpeedRatio float64 `json:"speed_ratio"`
 }
 
@@ -29,12 +29,12 @@ type Request struct {
 
 // TTSResponse 定义响应结构体
 type TTSResponse struct {
-	ReqID     string         `json:"reqid"`
-	Operation string         `json:"operation"`
-	Sequence  int            `json:"sequence"`
-	Data      string         `json:"data"`
+	ReqID     string           `json:"reqid"`
+	Operation string           `json:"operation"`
+	Sequence  int              `json:"sequence"`
+	Data      string           `json:"data"`
 	Addition  ResponseAddition `json:"addition"`
-	AudioData []byte         `json:"-"` // 音频二进制数据
+	AudioData []byte           `json:"-"` // 音频二进制数据
 }
 
 type ResponseAddition struct {
@@ -44,7 +44,7 @@ type ResponseAddition struct {
 // TTSService interface: text -> audio (return base64 for simplicity)
 type TTSService interface {
 	Synthesize(text string, voice string) (string, error) // returns base64 audio
-    ListVoicesRaw() ([]byte, error)
+	ListVoicesRaw() ([]byte, error)
 }
 
 type QiniuTTSService struct {
@@ -53,40 +53,41 @@ type QiniuTTSService struct {
 }
 
 func NewQiniuTTSService() *QiniuTTSService {
+	cfg := config.GetConfig()
 	return &QiniuTTSService{
-		APIKey: config.AppConfig.ApiKey,
-		URL:	config.AppConfig.TTSEndpoint,
+		APIKey: cfg.TTS.ApiKey,
+		URL:    cfg.TTS.Endpoint,
 	}
 }
 
 // ListVoicesRaw 调用提供方的 /voice/list 接口，返回原始响应体
 func (s *QiniuTTSService) ListVoicesRaw() ([]byte, error) {
-    base := s.URL
-    endpoint := strings.TrimRight(base, "/") + "/list"
-    req, err := http.NewRequest("GET", endpoint, nil)
-    if err != nil {
-        return nil, fmt.Errorf("创建请求失败: %v", err)
-    }
-    if s.APIKey != "" {
-        req.Header.Set("Authorization", "Bearer "+s.APIKey)
-    }
+	base := s.URL
+	endpoint := strings.TrimRight(base, "/") + "/list"
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("创建请求失败: %v", err)
+	}
+	if s.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+s.APIKey)
+	}
 
-    client := &http.Client{}
-    resp, err := client.Do(req)
-    if err != nil {
-        return nil, fmt.Errorf("发送请求失败: %v", err)
-    }
-    defer resp.Body.Close()
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("发送请求失败: %v", err)
+	}
+	defer resp.Body.Close()
 
-    if resp.StatusCode != http.StatusOK {
-        body, _ := io.ReadAll(resp.Body)
-        return nil, fmt.Errorf("API返回错误: %s, 响应体: %s", resp.Status, string(body))
-    }
-    body, err := io.ReadAll(resp.Body)
-    if err != nil {
-        return nil, fmt.Errorf("读取响应体失败: %v", err)
-    }
-    return body, nil
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API返回错误: %s, 响应体: %s", resp.Status, string(body))
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("读取响应体失败: %v", err)
+	}
+	return body, nil
 }
 
 func (s *QiniuTTSService) Synthesize(text string, voice string) (string, error) {
@@ -98,8 +99,8 @@ func (s *QiniuTTSService) Synthesize(text string, voice string) (string, error) 
 	}
 	requestBody := TTSRequest{
 		Audio: Audio{
-			VoiceType: voice,
-			Encoding:  "mp3",
+			VoiceType:  voice,
+			Encoding:   "mp3",
 			SpeedRatio: 1.0,
 		},
 		Request: Request{
@@ -109,7 +110,7 @@ func (s *QiniuTTSService) Synthesize(text string, voice string) (string, error) 
 
 	// 序列化请求体
 	base := s.URL
-    endpoint := strings.TrimRight(base, "/") + "/tts"
+	endpoint := strings.TrimRight(base, "/") + "/tts"
 	jsonData, err := json.Marshal(requestBody)
 	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -165,16 +166,16 @@ func (s *QiniuTTSService) Synthesize(text string, voice string) (string, error) 
 type MockTTSService struct{}
 
 func NewMockTTSService() TTSService {
-    return &MockTTSService{}
+	return &MockTTSService{}
 }
 
 func (m *MockTTSService) Synthesize(text string, voice string) (string, error) {
-    if text == "" {
-        return "", fmt.Errorf("empty text")
-    }
-    return "mock_audio_base64_data_for_" + text, nil
+	if text == "" {
+		return "", fmt.Errorf("empty text")
+	}
+	return "mock_audio_base64_data_for_" + text, nil
 }
 
 func (m *MockTTSService) ListVoicesRaw() ([]byte, error) {
-    return []byte(`["female_zh","male_zh","neutral_en"]`), nil
+	return []byte(`["female_zh","male_zh","neutral_en"]`), nil
 }

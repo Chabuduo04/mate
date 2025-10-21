@@ -8,6 +8,15 @@ const api = axios.create({
   timeout: 30000,
 });
 
+// Attach JWT if present
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('jwt_token');
+  if (token && config && config.headers) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
+});
+
 export const roleService = {
   async getRoles(): Promise<Role[]> {
     const response = await api.get<Role[]>('/roles');
@@ -59,6 +68,22 @@ export const uploadService = {
     });
     return response.data;
   },
+};
+
+export const authService = {
+  async register(username: string, password: string) {
+    const resp = await api.post('/register', { username, password });
+    return resp.data;
+  },
+  async login(username: string, password: string) {
+    const resp = await api.post('/login', { username, password });
+    return resp.data; // should contain token, user_id, username
+  },
+  logout() {
+    localStorage.removeItem('jwt_token');
+    localStorage.removeItem('user_id');
+    localStorage.removeItem('username');
+  }
 };
 
 export const voiceChatService = {

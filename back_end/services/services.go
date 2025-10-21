@@ -5,10 +5,11 @@ import "go.uber.org/zap"
 type Services struct {
 	RoleService  *RoleService
 	SessionStore SessionStore
+	UserService  *UserService
 	LLM          LLMService
 	ASR          ASRService
 	TTS          TTSService
-	Storage		 StorageService
+	Storage      StorageService
 	Logger       *zap.Logger
 
 	// config hints (optional)

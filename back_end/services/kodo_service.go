@@ -22,10 +22,11 @@ type KodoService struct {
 }
 
 func NewKodoService() *KodoService {
+	cfg := config.GetConfig()
 	return &KodoService{
-		AccessKey: config.AppConfig.AccessKey,
-		SecretKey: config.AppConfig.SecretKey,
-		Bucket:    config.AppConfig.Bucket,
+		AccessKey: cfg.Kodo.AccessKey,
+		SecretKey: cfg.Kodo.SecretKey,
+		Bucket:    cfg.Kodo.Bucket,
 	}
 }
 

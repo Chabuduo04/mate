@@ -9,7 +9,7 @@ export const useChat = () => {
     isLoading: false,
     isRecording: false,
     isPlaying: false,
-    selectedVoice: undefined,
+    selectedVoice: '',
   });
 
   const selectRole = useCallback((role: Role | null) => {
@@ -148,6 +148,6 @@ export const useChat = () => {
     transcribeAudio,
     synthesizeSpeech,
     clearMessages,
-    setSelectedVoice: (voice?: string) => setState(prev => ({ ...prev, selectedVoice: voice })),
+    setSelectedVoice: (voice?: string) => setState(prev => ({ ...prev, selectedVoice: voice ?? '' })),
   };
 };
