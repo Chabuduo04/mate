@@ -13,6 +13,10 @@ type MainConfig struct {
 	Port    int    `toml:"port"`
 }
 
+type LogConfig struct {
+	LogPath string `toml:"logPath"`
+}
+
 type JWTConfig struct {
 	Secret string `toml:"secret"`
 }
@@ -59,6 +63,7 @@ type KodoConfig struct {
 
 type Config struct {
 	Main  MainConfig  `toml:"main"`
+	Log   LogConfig   `toml:"log"`
 	JWT   JWTConfig   `toml:"jwt"`
 	Mysql MysqlConfig `toml:"mysql"`
 	Redis RedisConfig `toml:"redis"`

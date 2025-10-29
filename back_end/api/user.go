@@ -1,8 +1,12 @@
 package api
 
 import (
+	"net/http"
+
+	"github.com/Chabuduo04/mate/back_end/constants"
+	"github.com/Chabuduo04/mate/back_end/dto/request"
 	"github.com/Chabuduo04/mate/back_end/services"
-	"github.com/Chabuduo04/mate/back_end/utils"
+	"github.com/Chabuduo04/mate/back_end/zlog"
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,40 +19,33 @@ func NewUserApi(service services.UserService) UserApi {
 }
 
 func (u *UserApi) UserRegister(c *gin.Context) {
-	var req RegisterRequest
+	var req request.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
 		return
 	}
 
-	user, err := u.Service.Register(req.Username, req.Password)
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
+	message, userInfo, ret := u.Service.Register(req.Username, req.Password)
 
-	c.JSON(200, gin.H{"id": user.ID, "username": user.Username})
+	JsonBack(c, message, ret, userInfo)
 }
 
 func (u *UserApi) UserLogin(c *gin.Context) {
-	var req LoginRequest
+	var req request.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
 		return
 	}
 
-	user, err := u.Service.Authenticate(req.Username, req.Password)
-	if err != nil {
-		c.JSON(401, gin.H{"error": "invalid credentials"})
-		return
-	}
+	message, userInfo, ret := u.Service.Authenticate(req.Username, req.Password)
 
-	// create JWT
-	token, err := utils.GenerateJWT(user.ID, user.Username)
-	if err != nil {
-		c.JSON(500, gin.H{"error": "failed to generate token"})
-		return
-	}
-
-	c.JSON(200, gin.H{"token": token, "id": user.ID, "username": user.Username})
+	JsonBack(c, message, ret, userInfo)
 }

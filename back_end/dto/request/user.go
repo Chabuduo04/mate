@@ -1,4 +1,4 @@
-package api
+package request
 
 type RegisterRequest struct {
 	Username string `json:"username" binding:"required,min=3"`

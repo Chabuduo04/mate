@@ -5,7 +5,11 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Chabuduo04/mate/back_end/constants"
+	"github.com/Chabuduo04/mate/back_end/dto/request"
+	"github.com/Chabuduo04/mate/back_end/dto/respond"
 	"github.com/Chabuduo04/mate/back_end/services"
+	"github.com/Chabuduo04/mate/back_end/zlog"
 	"github.com/gin-gonic/gin"
 )
 
@@ -18,15 +22,22 @@ func NewChatApi(service services.Services) ChatApi {
 }
 
 func (c *ChatApi) ChatWithText(ctx *gin.Context) {
-	var req ChatRequest
+	var req request.ChatRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(400, gin.H{"error": err.Error()})
+		zlog.Error(err.Error())
+		ctx.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
 		return
 	}
 
 	role, ok := c.Service.RoleService.GetRole(req.RoleID)
 	if !ok {
-		ctx.JSON(404, gin.H{"error": "role not found"})
+		ctx.JSON(http.StatusOK, gin.H{
+			"code":    400,
+			"message": "角色不存在",
+		})
 		return
 	}
 
@@ -35,13 +46,19 @@ func (c *ChatApi) ChatWithText(ctx *gin.Context) {
 	var messages []services.ChatMessage
 	messages = append(messages, services.ChatMessage{Role: "system", Content: role.Prompt})
 
+	chatRsp := respond.ChatTextRespond{}
+
 	// call LLM
 	reply, err := c.Service.LLM.Chat(messages)
 	if err != nil {
 		c.Service.Logger.Sugar().Errorf("llm error: %v", err)
-		ctx.JSON(500, gin.H{"error": "llm error"})
+		ctx.JSON(500, gin.H{
+			"code":    500,
+			"message": "聊天失败，请稍后再试",
+		})
 		return
 	}
+	chatRsp.ReplyText = reply
 
 	voiceType := req.Voice
 	if voiceType == "" {
@@ -56,13 +73,12 @@ func (c *ChatApi) ChatWithText(ctx *gin.Context) {
 		audioBase64 = "data:audio/mp3;base64," + audioBase64
 		c.Service.Logger.Sugar().Infof("TTS success, audio length: %d", len(audioBase64))
 	}
+	chatRsp.AudioBase64 = audioBase64
 
-	ctx.JSON(200, gin.H{
-		"reply_text":   reply,
-		"audio_base64": audioBase64,
-	})
+	JsonBack(ctx, "success", 0, chatRsp)
 }
 
+// todo: 处理webm格式的音频文件,目前只支持wav和mp3，统一返回格式
 func (c *ChatApi) ChatWithAudio(ctx *gin.Context) {
 	// 获取上传的音频文件
 	file, header, err := ctx.Request.FormFile("audio")

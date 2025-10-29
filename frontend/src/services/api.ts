@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import { Role, ChatRequest, ChatResponse, VoiceChatResponse, ASRResponse, TTSRequest, TTSResponse } from '../types';
 
 // 不再全局使用 '/api' 作为 baseURL，因为后端路由有的在根路径，有的在 /api 下
@@ -20,17 +20,17 @@ api.interceptors.request.use((config) => {
 
 export const roleService = {
   async getRoles(): Promise<Role[]> {
-    // 后端在 /role/list 返回 { roles: [...] }
-    const response = await api.get<{ roles: Role[] }>('/role/list');
-    return response.data.roles;
+    // 后端在 /role/list 返回 { data: { roles: [...] } }
+    const response = await api.get<ApiResponse<{ roles: Role[] }>>('/role/list');
+    return unwrap(response).roles;
   },
 };
 
 export const chatService = {
   async sendMessage(request: ChatRequest): Promise<ChatResponse> {
     // Chat 路由在后端被注册为 /api/llm（需要 JWT）
-    const response = await api.post<ChatResponse>('/api/llm', request);
-    return response.data;
+    const response = await api.post<ApiResponse<ChatResponse>>('/api/llm', request);
+    return unwrap(response);
   },
 };
 
@@ -40,25 +40,25 @@ export const asrService = {
     formData.append('audio', audioFile);
 
     // ASR 接口在后端文档/handlers 中是 /api/asr
-    const response = await api.post<ASRResponse>('/api/asr', formData, {
+    const response = await api.post<ApiResponse<ASRResponse>>('/api/asr', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
-    return response.data;
+    return unwrap(response);
   },
 };
 
 export const ttsService = {
   async synthesize(request: TTSRequest): Promise<TTSResponse> {
     // TTS 也通常位于 /api/tts（受保护）
-    const response = await api.post<TTSResponse>('/api/tts', request);
-    return response.data;
+    const response = await api.post<ApiResponse<TTSResponse>>('/api/tts', request);
+    return unwrap(response);
   },
   async listVoices(): Promise<any> {
     // 列表接口在根路径下 /voice/list
-    const response = await api.get('/voice/list');
-    return response.data;
+    const response = await api.get<ApiResponse<any>>('/voice/list');
+    return unwrap(response);
   },
 };
 
@@ -68,23 +68,23 @@ export const uploadService = {
     formData.append('audio', audioFile);
 
     // 上传走 /api/upload
-    const response = await api.post<{ upload: boolean }>('/api/upload', formData, {
+    const response = await api.post<ApiResponse<{ upload: boolean }>>('/api/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
-    return response.data;
+    return unwrap(response);
   },
 };
 
 export const authService = {
   async register(username: string, password: string) {
-    const resp = await api.post('/user/register', { username, password });
-    return resp.data;
+    const resp = await api.post<ApiResponse<any>>('/user/register', { username, password });
+    return unwrap(resp);
   },
   async login(username: string, password: string) {
-    const resp = await api.post('/user/login', { username, password });
-    return resp.data; // should contain token, user_id, username
+    const resp = await api.post<ApiResponse<any>>('/user/login', { username, password });
+    return unwrap(resp); // should contain token, user_id, username inside data
   },
   logout() {
     localStorage.removeItem('jwt_token');
@@ -106,11 +106,27 @@ export const voiceChatService = {
     }
 
     // voice-chat 在后端被注册为 /api/voice-chat
-    const response = await api.post<VoiceChatResponse>('/api/voice-chat', formData, {
+    const response = await api.post<ApiResponse<VoiceChatResponse>>('/api/voice-chat', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
-    return response.data;
+    return unwrap(response);
   },
 };
+
+// Generic API response wrapper used by backend: { code?: number, message?: string, data: T }
+type ApiResponse<T> = {
+  code?: number;
+  message?: string;
+  data: T;
+};
+
+function unwrap<T>(resp: AxiosResponse<ApiResponse<T>>): T {
+  // defensive: if backend returns directly, fall back to resp.data
+  if (resp && resp.data && Object.prototype.hasOwnProperty.call(resp.data, 'data')) {
+    return resp.data.data as T;
+  }
+  // @ts-ignore
+  return resp.data as unknown as T;
+}
