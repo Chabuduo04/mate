@@ -7,7 +7,20 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
+      // 代理后端不同路由分组，开发时将这些路径转发到后端服务
       '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/user': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/role': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/voice': {
         target: 'http://localhost:8080',
         changeOrigin: true,
       },

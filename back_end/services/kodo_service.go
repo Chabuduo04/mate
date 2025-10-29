@@ -1,9 +1,14 @@
 package services
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"io"
+	"mime/multipart"
+	"path/filepath"
 
+	"github.com/google/uuid"
 	"github.com/qiniu/go-sdk/v7/storagev2/credentials"
 	"github.com/qiniu/go-sdk/v7/storagev2/http_client"
 	"github.com/qiniu/go-sdk/v7/storagev2/uploader"
@@ -13,6 +18,7 @@ import (
 
 type StorageService interface {
 	Upload(file io.Reader, key string, fileName string) error
+	UploadAudio(file multipart.File, fileName string) (string, error)
 }
 
 type KodoService struct {
@@ -46,4 +52,25 @@ func (s *KodoService) Upload(file io.Reader, key string, fileName string) error 
 		return err
 	}
 	return nil
+}
+
+func (s *KodoService) UploadAudio(file multipart.File, fileName string) (string, error) {
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		return "", err
+	}
+
+	fileExt := filepath.Ext(fileName)
+	if fileExt == "" {
+		fileExt = ".wav" // 默认扩展名
+	}
+	fmt.Println(fileExt)
+	key := "voice-chat/" + uuid.New().String() + fileExt
+
+	uploadReader := bytes.NewReader(fileBytes)
+	err = s.Upload(uploadReader, key, fileName)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s%s/%s", "http://", config.GetConfig().Kodo.Host, key), nil
 }

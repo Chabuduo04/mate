@@ -8,9 +8,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	"github.com/Chabuduo04/mate/back_end/api"
 	"github.com/Chabuduo04/mate/back_end/config"
 	"github.com/Chabuduo04/mate/back_end/db"
-	"github.com/Chabuduo04/mate/back_end/handlers"
 	"github.com/Chabuduo04/mate/back_end/services"
 )
 
@@ -67,7 +67,7 @@ func main() {
 	}
 
 	router := gin.Default()
-	handlers.RegisterRoutes(router, svc)
+	api.RegisterRoutes(router, svc)
 
 	addr := fmt.Sprintf(":%d", cfg.Main.Port)
 	srv := &http.Server{
