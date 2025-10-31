@@ -112,6 +112,9 @@ func (s *QiniuTTSService) Synthesize(text string, voice string) (string, error) 
 	base := s.URL
 	endpoint := strings.TrimRight(base, "/") + "/tts"
 	jsonData, err := json.Marshal(requestBody)
+	if err != nil {
+		return "", fmt.Errorf("序列化请求体失败: %v", err)
+	}
 	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", fmt.Errorf("创建请求失败: %v", err)

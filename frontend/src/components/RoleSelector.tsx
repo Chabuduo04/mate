@@ -40,14 +40,7 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({
                 {role.name}
               </h3>
               <div className="flex flex-wrap gap-1 justify-center">
-                {role.skills.map((skill, index) => (
-                  <span
-                    key={index}
-                    className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full"
-                  >
-                    {skill}
-                  </span>
-                ))}
+                {role.description}
               </div>
             </div>
           </div>

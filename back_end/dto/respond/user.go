@@ -2,11 +2,11 @@ package respond
 
 type LoginRespond struct {
 	Token    string `json:"token"`
-	Id       string `json:"id"`
+	UserId   string `json:"userId"`
 	Username string `json:"username"`
 }
 
 type RegisterRespond struct {
-	Id       string `json:"id"`
+	UserId   string `json:"userId"`
 	Username string `json:"username"`
 }

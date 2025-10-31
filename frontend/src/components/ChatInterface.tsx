@@ -79,7 +79,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 {currentRole.name}
               </h2>
               <p className="text-sm text-gray-500">
-                {currentRole.skills.join(' • ')}
+                {currentRole.description}
               </p>
             </div>
           </div>
@@ -116,7 +116,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             />
           ))
         )}
-        
+
         {isLoading && (
           <div className="flex justify-start">
             <div className="message-bubble message-ai">
@@ -131,7 +131,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
           </div>
         )}
-        
+
         <div ref={messagesEndRef} />
       </div>
 

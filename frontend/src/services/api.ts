@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
-import { Role, ChatRequest, ChatResponse, VoiceChatResponse, ASRResponse, TTSRequest, TTSResponse } from '../types';
+import { Role, ChatRequest, ChatResponse, VoiceChatResponse, ASRResponse, TTSRequest, TTSResponse, Message } from '../types';
 
 // 不再全局使用 '/api' 作为 baseURL，因为后端路由有的在根路径，有的在 /api 下
 const API_BASE_URL = '';
@@ -28,9 +28,17 @@ export const roleService = {
 
 export const chatService = {
   async sendMessage(request: ChatRequest): Promise<ChatResponse> {
-    // Chat 路由在后端被注册为 /api/llm（需要 JWT）
-    const response = await api.post<ApiResponse<ChatResponse>>('/api/llm', request);
+    // Chat 路由在后端被注册为 /chat/llm（需要 JWT）
+    const response = await api.post<ApiResponse<ChatResponse>>('/chat/llm', request);
     return unwrap(response);
+  },
+  async getChatList(params: { user_id: string; role_id: string }): Promise<Message[]> {
+    // /chat/list 返回 { data: { records: Message[] } }
+    const response = await api.post<ApiResponse<{ records: Message[] }>>('/chat/list', {
+      user_id: params.user_id,
+      role_id: params.role_id
+    });
+    return unwrap(response).records;
   },
 };
 
@@ -83,8 +91,17 @@ export const authService = {
     return unwrap(resp);
   },
   async login(username: string, password: string) {
-    const resp = await api.post<ApiResponse<any>>('/user/login', { username, password });
-    return unwrap(resp); // should contain token, user_id, username inside data
+    const resp = await api.post<ApiResponse<{
+      token: string;
+      user_id: string;
+      username: string;
+    }>>('/user/login', { username, password });
+    const data = unwrap(resp);
+    return {
+      token: data.token,
+      user_id: data.user_id,
+      username: data.username
+    };
   },
   logout() {
     localStorage.removeItem('jwt_token');
@@ -105,8 +122,8 @@ export const voiceChatService = {
       formData.append('voice', voice);
     }
 
-    // voice-chat 在后端被注册为 /api/voice-chat
-    const response = await api.post<ApiResponse<VoiceChatResponse>>('/api/voice-chat', formData, {
+    // voice-chat 在后端被注册为 /chat/voice-chat
+    const response = await api.post<ApiResponse<VoiceChatResponse>>('/chat/voice-chat', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

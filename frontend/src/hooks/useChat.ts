@@ -12,12 +12,48 @@ export const useChat = () => {
     selectedVoice: '',
   });
 
-  const selectRole = useCallback((role: Role | null) => {
+  const selectRole = useCallback(async (role: Role | null) => {
+    if (!role) {
+      setState(prev => ({
+        ...prev,
+        currentRole: null,
+        messages: [],
+      }));
+      return;
+    }
+
     setState(prev => ({
       ...prev,
       currentRole: role,
-      messages: [],
+      isLoading: true,
     }));
+
+    try {
+      const userId = localStorage.getItem('user_id') || '';
+      const records = await chatService.getChatList({
+        user_id: userId,
+        role_id: role.id
+      });
+
+      setState(prev => ({
+        ...prev,
+        messages: records.map(record => ({
+          id: record.id,
+          content: record.content,
+          isUser: record.isUser,
+          timestamp: new Date(record.timestamp),
+          audioUrl: record.audioUrl,
+        })),
+        isLoading: false,
+      }));
+    } catch (error) {
+      console.error('Error loading chat history:', error);
+      setState(prev => ({
+        ...prev,
+        messages: [],
+        isLoading: false,
+      }));
+    }
   }, []);
 
   const sendMessage = useCallback(async (content: string) => {
@@ -96,8 +132,8 @@ export const useChat = () => {
 
     try {
       const response = await voiceChatService.sendVoiceMessage(
-        audioFile, 
-        state.currentRole.id, 
+        audioFile,
+        state.currentRole.id,
         'user123', // 可以改为动态用户ID
         state.selectedVoice
       );

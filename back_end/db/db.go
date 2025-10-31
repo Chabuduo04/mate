@@ -27,7 +27,7 @@ func InitDB() {
 	}
 
 	// 自动迁移
-	err = db.AutoMigrate(&models.User{})
+	err = db.AutoMigrate(&models.User{}, &models.Role{}, &models.ChatRecord{})
 	if err != nil {
 		log.Fatal("AutoMigrate failed:", err)
 	}

@@ -1,7 +1,7 @@
 export interface Role {
   id: string;
   name: string;
-  skills: string[];
+  description: string;
   prompt: string;
 }
 

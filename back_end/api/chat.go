@@ -7,7 +7,6 @@ import (
 
 	"github.com/Chabuduo04/mate/back_end/constants"
 	"github.com/Chabuduo04/mate/back_end/dto/request"
-	"github.com/Chabuduo04/mate/back_end/dto/respond"
 	"github.com/Chabuduo04/mate/back_end/services"
 	"github.com/Chabuduo04/mate/back_end/zlog"
 	"github.com/gin-gonic/gin"
@@ -32,50 +31,13 @@ func (c *ChatApi) ChatWithText(ctx *gin.Context) {
 		return
 	}
 
-	role, ok := c.Service.RoleService.GetRole(req.RoleID)
-	if !ok {
-		ctx.JSON(http.StatusOK, gin.H{
-			"code":    400,
-			"message": "角色不存在",
-		})
-		return
+	if req.UserID == "" {
+		req.UserID = ctx.GetString("user_id")
 	}
 
-	//todo: get session context using req.UserID if provided
+	message, chatRsp, ret := services.ChatService.Chat(req, &c.Service)
 
-	var messages []services.ChatMessage
-	messages = append(messages, services.ChatMessage{Role: "system", Content: role.Prompt})
-
-	chatRsp := respond.ChatTextRespond{}
-
-	// call LLM
-	reply, err := c.Service.LLM.Chat(messages)
-	if err != nil {
-		c.Service.Logger.Sugar().Errorf("llm error: %v", err)
-		ctx.JSON(500, gin.H{
-			"code":    500,
-			"message": "聊天失败，请稍后再试",
-		})
-		return
-	}
-	chatRsp.ReplyText = reply
-
-	voiceType := req.Voice
-	if voiceType == "" {
-		voiceType = role.VoiceType
-	}
-	audioBase64, err := c.Service.TTS.Synthesize(reply, voiceType)
-	if err != nil {
-		c.Service.Logger.Sugar().Errorf("tts error: %v", err)
-		// TTS失败不影响文字回复，继续返回文字
-		audioBase64 = ""
-	} else if audioBase64 != "" {
-		audioBase64 = "data:audio/mp3;base64," + audioBase64
-		c.Service.Logger.Sugar().Infof("TTS success, audio length: %d", len(audioBase64))
-	}
-	chatRsp.AudioBase64 = audioBase64
-
-	JsonBack(ctx, "success", 0, chatRsp)
+	JsonBack(ctx, message, ret, chatRsp)
 }
 
 // todo: 处理webm格式的音频文件,目前只支持wav和mp3，统一返回格式
@@ -107,4 +69,21 @@ func (c *ChatApi) ChatWithAudio(ctx *gin.Context) {
 	ctx.Request.Body = io.NopCloser(strings.NewReader(audioText))
 	c.ChatWithText(ctx)
 	ctx.JSON(200, gin.H{"transcribed_text": audioText})
+}
+
+func (c *ChatApi) ChatList(ctx *gin.Context) {
+	var req request.GetMessageListRequest
+	if err := ctx.BindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		ctx.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	if req.UserId == "" {
+		req.UserId = ctx.GetString("user_id")
+	}
+	message, rsp, ret := services.MessageService.GetMessageList(req.UserId, req.RoleId)
+	JsonBack(ctx, message, ret, rsp)
 }

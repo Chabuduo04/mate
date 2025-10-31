@@ -24,14 +24,15 @@ func RegisterRoutes(r *gin.Engine, svc *services.Services) {
 		voiceRouterGroup.GET("/list", v.VoiceList)
 	}
 	c := NewChatApi(*svc)
-	api := r.Group("/api")
 	{
+		chatRouterGroup := r.Group("/chat")
 		// protected routes - require JWT auth
-		protected := api.Group("")
+		protected := chatRouterGroup.Group("")
 		protected.Use(AuthRequired())
 		{
 			protected.POST("/llm", c.ChatWithText)
 			protected.POST("/voice-chat", c.ChatWithAudio)
+			protected.POST("/list", c.ChatList)
 		}
 	}
 }

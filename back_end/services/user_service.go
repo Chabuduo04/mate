@@ -48,7 +48,7 @@ func (s *UserService) Register(username, password string) (string, *respond.Regi
 		return constants.SYSTEM_ERROR, nil, -1
 	}
 	return "注册成功", &respond.RegisterRespond{
-		Id:       u.ID,
+		UserId:   u.ID,
 		Username: u.Username,
 	}, 0
 }
@@ -71,7 +71,7 @@ func (s *UserService) Authenticate(username, password string) (string, *respond.
 
 	loginRsp := &respond.LoginRespond{
 		Token:    token,
-		Id:       user.ID,
+		UserId:   user.ID,
 		Username: user.Username,
 	}
 	return "登录成功", loginRsp, 0

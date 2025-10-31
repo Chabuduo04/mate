@@ -8,7 +8,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       // 代理后端不同路由分组，开发时将这些路径转发到后端服务
-      '/api': {
+      '/chat': {
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
